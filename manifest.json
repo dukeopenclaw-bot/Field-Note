@@ -3,7 +3,8 @@
   "short_name": "FieldNote",
   "description": "현장 문제점 등록 및 검색 앱",
   "start_url": "./index.html",
-  "display": "fullscreen",
+  "scope": "./",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0b0c10",
   "theme_color": "#0b0c10",
@@ -12,16 +13,27 @@
       "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["utilities", "productivity"],
-  "lang": "ko",
-  "dir": "ltr"
+  "lang": "ko"
 }
