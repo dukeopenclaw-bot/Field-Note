@@ -12,73 +12,92 @@
 <link rel="manifest" href="manifest.json"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
-
 <style>
-:root {
-  --bg:        #0b0c10;
-  --surface:   #13151c;
-  --surface2:  #1a1d28;
-  --surface3:  #222636;
-  --border:    #2a2f42;
-  --amber:     #f59e0b;
-  --amber-dim: #92600a;
-  --amber-glow:#f59e0b44;
-  --red:       #ef4444;
-  --green:     #22c55e;
-  --text:      #e8e6e0;
-  --text-dim:  #8b8fa8;
-  --text-muted:#4a4e63;
-  --font-head: 'Barlow Condensed', sans-serif;
-  --font-body: 'Barlow', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --radius:    10px;
-  --safe-top:  env(safe-area-inset-top, 0px);
-  --safe-bot:  env(safe-area-inset-bottom, 0px);
+:root{
+  --bg:#0b0c10;--surface:#13151c;--surface2:#1a1d28;--surface3:#222636;
+  --border:#2a2f42;--amber:#f59e0b;--amber-dim:#92600a;--amber-glow:#f59e0b44;
+  --red:#ef4444;--green:#22c55e;--text:#e8e6e0;--text-dim:#8b8fa8;--text-muted:#4a4e63;
+  --font-head:'Barlow Condensed',sans-serif;--font-body:'Barlow',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;--radius:10px;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:var(--font-body);color:var(--text);-webkit-font-smoothing:antialiased;padding-top:var(--safe-top)}
-
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--bg);overflow:hidden}
 
+/* ── HEADER ── */
 .statusbar{height:4px;background:linear-gradient(90deg,var(--amber) 0%,#f97316 50%,var(--amber) 100%);background-size:200% 100%;animation:shimmer 3s linear infinite}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
 .logo{display:flex;align-items:center;gap:10px}
 .logo-icon{width:36px;height:36px;background:var(--amber);border-radius:8px;display:grid;place-items:center;font-size:18px}
 .logo-text{font-family:var(--font-head);font-size:24px;font-weight:900;letter-spacing:2px;color:var(--text)}
 .logo-text span{color:var(--amber)}
 .header-right{display:flex;align-items:center;gap:10px}
-
 .sync-pill{font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;gap:5px;transition:color .3s,border-color .3s}
-.sync-pill.live  {color:var(--green);border-color:var(--green)}
+.sync-pill.live{color:var(--green);border-color:var(--green)}
 .sync-pill.cached{color:var(--amber);border-color:var(--amber-dim)}
 .sync-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.icon-btn{width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:grid;place-items:center;cursor:pointer;font-size:16px;color:var(--text-dim)}
 
-.icon-btn{width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:grid;place-items:center;cursor:pointer;font-size:16px;color:var(--text-dim);transition:border-color .15s,color .15s}
-.icon-btn:hover{border-color:var(--amber);color:var(--amber)}
-
+/* ── TABS ── */
 .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
 .tab{flex:1;padding:13px 0;font-family:var(--font-head);font-size:15px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);background:none;border:none;cursor:pointer;position:relative;transition:color .2s}
 .tab.active{color:var(--amber)}
 .tab.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2px;background:var(--amber);border-radius:2px 2px 0 0}
 
+/* ── CONTENT ── */
 .content{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 0 calc(20px + var(--safe-bot));-webkit-overflow-scrolling:touch}
 .screen{display:none}
 .screen.active{display:block}
-
-/* ── REGISTER ── */
 .section-head{padding:20px 18px 10px;font-family:var(--font-head);font-size:11px;font-weight:700;letter-spacing:3px;color:var(--amber);text-transform:uppercase}
 
-.form-card{margin:0 14px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);min-height:54px}
-.field-row:last-child{border-bottom:none}
+/* ── FORM CARD ── */
+/* overflow:visible 필수 — 자동완성 드롭다운이 카드 밖으로 나와야 함 */
+.form-card{
+  margin:0 14px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:visible;   /* ★ hidden 아님 */
+}
+.field-row{display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);min-height:54px;position:relative}
+.field-row:first-child{border-radius:var(--radius) var(--radius) 0 0}
+.field-row:last-child{border-bottom:none;border-radius:0 0 var(--radius) var(--radius)}
 .field-label{font-family:var(--font-head);font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;width:100px;flex-shrink:0}
 .field-input{flex:1;background:none;border:none;outline:none;font-family:var(--font-body);font-size:15px;color:var(--text);padding:16px 0;width:100%}
 .field-input::placeholder{color:var(--text-muted)}
 select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
 
+/* ── AUTOCOMPLETE ── */
+.ac-wrap{position:relative;flex:1;display:flex;align-items:center}
+.ac-wrap .field-input{width:100%}
+
+/* 드롭다운은 fixed로 JS에서 위치 계산 */
+#tag-drop{
+  position:fixed;
+  background:var(--surface2);
+  border:1px solid var(--amber-dim);
+  border-radius:8px;
+  z-index:99000;
+  max-height:240px;overflow-y:auto;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);
+  display:none;
+}
+.ac-item{
+  padding:12px 16px;cursor:pointer;
+  border-bottom:1px solid var(--border);
+  transition:background .12s;
+}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.active{background:var(--surface3)}
+.ac-tag{font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--text);letter-spacing:1px}
+.ac-tag em{color:var(--amber);font-style:normal}
+.ac-meta{font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-top:2px}
+.ac-loc{color:var(--amber-dim)}
+
+/* ── COMMENTS ── */
 .comment-grid{margin:0 14px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:480px){.comment-grid{grid-template-columns:1fr}}
 .comment-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
@@ -87,6 +106,7 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
 .comment-textarea{width:100%;min-height:80px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-body);font-size:14px;padding:10px 12px;resize:vertical;outline:none;transition:border-color .2s}
 .comment-textarea:focus{border-color:var(--amber)}
 
+/* ── PHOTOS ── */
 .photo-section{margin:0 14px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
 .photo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 @media(max-width:400px){.photo-grid{grid-template-columns:repeat(4,1fr)}}
@@ -98,6 +118,7 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
 .photo-add-btn:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-glow)}
 #fileInput{display:none}
 
+/* ── SUBMIT ── */
 .submit-wrap{margin:8px 14px 0}
 .btn-submit{width:100%;padding:17px;background:var(--amber);color:#0b0c10;border:none;border-radius:var(--radius);font-family:var(--font-head);font-size:18px;font-weight:900;letter-spacing:3px;text-transform:uppercase;cursor:pointer;position:relative;overflow:hidden;transition:transform .1s,box-shadow .2s}
 .btn-submit:hover{box-shadow:0 0 30px var(--amber-glow)}
@@ -114,15 +135,14 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
 .filter-input::placeholder{color:var(--text-muted)}
 .date-range{display:flex;align-items:center;gap:8px;flex:1}
 .date-range input{flex:1;background:none;border:none;outline:none;font-size:13px;color:var(--text);font-family:var(--font-mono);color-scheme:dark}
-
 .search-actions{display:flex;gap:8px;margin:10px 14px}
 .btn-search{flex:1;padding:14px;background:var(--amber);color:#0b0c10;border:none;border-radius:var(--radius);font-family:var(--font-head);font-size:16px;font-weight:900;letter-spacing:2px;cursor:pointer;transition:box-shadow .2s}
 .btn-search:hover{box-shadow:0 0 20px var(--amber-glow)}
 .btn-reset{padding:14px 18px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--font-head);font-size:14px;font-weight:700;cursor:pointer}
-
 .result-stats{padding:10px 18px;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:8px}
 .result-count{background:var(--surface3);color:var(--amber);padding:2px 10px;border-radius:20px;font-size:12px}
 
+/* ── RECORD CARDS ── */
 .records-list{padding:0 14px}
 .record-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;transition:border-color .2s;cursor:pointer}
 .record-card:hover{border-color:var(--amber-dim)}
@@ -156,52 +176,17 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
 #toast{position:fixed;bottom:calc(20px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-family:var(--font-body);font-size:14px;color:var(--text);box-shadow:0 4px 30px rgba(0,0,0,.6);z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;max-width:90vw}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.success{border-color:var(--green);color:var(--green)}
-#toast.error  {border-color:var(--red);  color:var(--red)}
+#toast.error{border-color:var(--red);color:var(--red)}
 #toast.warning{border-color:var(--amber);color:var(--amber)}
-
 #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:99999;display:none;place-items:center;cursor:pointer}
 #lightbox.show{display:grid}
 #lightbox img{max-width:95vw;max-height:95vh;border-radius:6px;object-fit:contain}
-
 .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-row{padding:40px;text-align:center;color:var(--text-muted);font-family:var(--font-head);font-size:14px;letter-spacing:2px}
 .empty-state{padding:60px 30px;text-align:center;color:var(--text-muted)}
 .empty-icon{font-size:40px;margin-bottom:12px}
 .empty-text{font-family:var(--font-head);font-size:15px;font-weight:700;letter-spacing:2px}
-
-/* ── AUTOCOMPLETE ── */
-.autocomplete-wrap{position:relative;flex:1;display:flex}
-.autocomplete-drop{
-  position:absolute;top:100%;left:0;right:0;
-  background:var(--surface2);
-  border:1px solid var(--amber-dim);
-  border-radius:8px;
-  z-index:1000;
-  max-height:220px;overflow-y:auto;
-  box-shadow:0 8px 30px rgba(0,0,0,.6);
-  margin-top:4px;
-}
-.autocomplete-item{
-  padding:11px 14px;
-  cursor:pointer;
-  border-bottom:1px solid var(--border);
-  transition:background .15s;
-}
-.autocomplete-item:last-child{border-bottom:none}
-.autocomplete-item:hover,.autocomplete-item.active{background:var(--surface3)}
-.autocomplete-tag{
-  font-family:var(--font-head);
-  font-size:15px;font-weight:700;
-  color:var(--text);letter-spacing:1px;
-}
-.autocomplete-tag em{color:var(--amber);font-style:normal}
-.autocomplete-meta{
-  font-family:var(--font-mono);
-  font-size:10px;color:var(--text-muted);
-  margin-top:2px;
-}
-
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -233,27 +218,29 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
     <div class="screen active" id="screen-register">
       <div class="section-head">📌 NEW FIELD NOTE</div>
       <div class="form-card">
-        <div class="field-row" style="overflow:visible;position:relative">
+
+        <!-- EQ TAG — 자동완성 분리 -->
+        <div class="field-row">
           <div class="field-label">EQ. TAG</div>
-          <div class="autocomplete-wrap">
+          <div class="ac-wrap">
             <input class="field-input" id="reg-tag" type="text"
-              placeholder="P-101A (입력하면 목록 표시)"
+              placeholder="입력하면 목록 표시"
               autocomplete="off" autocapitalize="characters"
               oninput="onTagInput()" onkeydown="onTagKeydown(event)" onfocus="onTagInput()"/>
-            <div class="autocomplete-drop" id="tag-drop" style="display:none"></div>
           </div>
         </div>
+
         <div class="field-row">
           <div class="field-label">NAME</div>
           <input class="field-input" id="reg-name" type="text" placeholder="등록자 이름" autocomplete="off"/>
         </div>
         <div class="field-row">
           <div class="field-label">LOCATION</div>
-          <input class="field-input" id="reg-location" type="text" placeholder="Unit-A / Area-3" autocomplete="off"/>
+          <input class="field-input" id="reg-location" type="text" placeholder="자동 입력 또는 직접 입력" autocomplete="off" readonly/>
         </div>
         <div class="field-row">
           <div class="field-label">DRAWING</div>
-          <input class="field-input" id="reg-drawing" type="text" placeholder="P&ID-1001-A" autocomplete="off"/>
+          <input class="field-input" id="reg-drawing" type="text" placeholder="P&amp;ID-1001-A" autocomplete="off"/>
         </div>
         <div class="field-row">
           <div class="field-label">TYPE</div>
@@ -308,7 +295,7 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
         </div>
         <div class="filter-row">
           <div class="filter-label">DRAWING</div>
-          <input class="filter-input" id="s-drawing" type="text" placeholder="P&ID..." autocomplete="off"/>
+          <input class="filter-input" id="s-drawing" type="text" placeholder="P&amp;ID..." autocomplete="off"/>
         </div>
         <div class="filter-row">
           <div class="filter-label">TYPE</div>
@@ -333,12 +320,10 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
           </div>
         </div>
       </div>
-
       <div class="search-actions">
         <button class="btn-search" onclick="doSearch()">🔍 SEARCH</button>
-        <button class="btn-reset"  onclick="resetSearch()">✕ RESET</button>
+        <button class="btn-reset" onclick="resetSearch()">✕ RESET</button>
       </div>
-
       <div class="result-stats" id="result-stats" style="display:none">
         <span>Results</span>
         <span class="result-count" id="result-count">0</span>
@@ -348,15 +333,18 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
       </div>
     </div>
 
-  </div>
-</div>
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<!-- 자동완성 드롭다운 — body 직속 (fixed 위치) -->
+<div id="tag-drop"></div>
 
 <div id="toast"></div>
 <div id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" src="" alt=""/></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
-//  ★ GAS 배포 후 아래 URL 한 줄만 교체하세요 ★
+//  ★ GAS URL ★
 // ═══════════════════════════════════════════════════════════
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJaSYBRwEx24s7B10iH6oFvmz_kkrrfGoPYjc4ibgSy9O_A1ugnmZviAUtA5-RSaSDog/exec';
 
@@ -365,82 +353,10 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJaSYBRwEx24s7B10iH6oF
 // ═══════════════════════════════════════════════════════════
 let photos        = [];
 let cachedRecords = [];
-let equipmentList = [];  // [{tag, fmodu, location}]
+let equipmentList = [];   // [{tag, fmodu, location}]
+let acMatches     = [];
 let acIndex       = -1;
 let isFetching    = false;
-
-// ═══════════════════════════════════════════════════════════
-//  EQUIPMENT AUTOCOMPLETE
-// ═══════════════════════════════════════════════════════════
-async function loadEquipment() {
-  try {
-    const cached = localStorage.getItem('fn_equip_cache');
-    if (cached) equipmentList = JSON.parse(cached);
-    const data = await gasGet({ action: 'getEquipment' });
-    if (data.success && data.equipment.length) {
-      equipmentList = data.equipment;
-      localStorage.setItem('fn_equip_cache', JSON.stringify(equipmentList));
-    }
-  } catch(_) {
-    const cached = localStorage.getItem('fn_equip_cache');
-    if (cached) equipmentList = JSON.parse(cached);
-  }
-}
-
-function onTagInput() {
-  const q    = document.getElementById('reg-tag').value.trim().toLowerCase();
-  const drop = document.getElementById('tag-drop');
-  acIndex    = -1;
-  if (!q) { drop.style.display = 'none'; return; }
-
-  const matches = equipmentList.filter(e => e.tag.toLowerCase().includes(q)).slice(0, 12);
-  if (!matches.length) { drop.style.display = 'none'; return; }
-
-  drop.innerHTML = matches.map((e, i) => {
-    const hi = e.tag.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<em>$1</em>');
-    return `<div class="autocomplete-item" data-idx="${i}" onmousedown="selectEquip(${i})">
-      <div class="autocomplete-tag">${hi}</div>
-      <div class="autocomplete-meta">${e.fmodu ? e.fmodu + ' &middot; ' : ''}${e.location || '—'}</div>
-    </div>`;
-  }).join('');
-
-  drop._matches = matches;
-  drop.style.display = 'block';
-}
-
-function onTagKeydown(e) {
-  const drop  = document.getElementById('tag-drop');
-  if (drop.style.display === 'none') return;
-  const items = drop.querySelectorAll('.autocomplete-item');
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
-    acIndex = Math.min(acIndex + 1, items.length - 1);
-    items.forEach((el, i) => el.classList.toggle('active', i === acIndex));
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
-    acIndex = Math.max(acIndex - 1, 0);
-    items.forEach((el, i) => el.classList.toggle('active', i === acIndex));
-  } else if (e.key === 'Enter' && acIndex >= 0) {
-    e.preventDefault(); selectEquip(acIndex);
-  } else if (e.key === 'Escape') {
-    drop.style.display = 'none';
-  }
-}
-
-function selectEquip(idx) {
-  const drop = document.getElementById('tag-drop');
-  const eq   = drop._matches && drop._matches[idx];
-  if (!eq) return;
-  document.getElementById('reg-tag').value      = eq.tag;
-  document.getElementById('reg-location').value = eq.location || '';
-  drop.style.display = 'none';
-  document.getElementById('reg-drawing').focus();
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#reg-tag') && !e.target.closest('#tag-drop'))
-    document.getElementById('tag-drop').style.display = 'none';
-});
 
 // ═══════════════════════════════════════════════════════════
 //  TABS
@@ -450,17 +366,132 @@ function showTab(name) {
     document.getElementById('screen-' + t).classList.toggle('active', t === name);
     document.getElementById('tab-'    + t).classList.toggle('active', t === name);
   });
+  closeDropdown();
 }
 
 // ═══════════════════════════════════════════════════════════
-//  SYNC STATUS PILL
+//  SYNC PILL
 // ═══════════════════════════════════════════════════════════
 function setSyncStatus(state, label) {
   const pill = document.getElementById('sync-pill');
-  const lb   = document.getElementById('sync-label');
-  pill.className = 'sync-pill ' + state;
-  lb.textContent = label;
+  pill.className   = 'sync-pill ' + state;
+  document.getElementById('sync-label').textContent = label;
 }
+
+// ═══════════════════════════════════════════════════════════
+//  EQUIPMENT AUTOCOMPLETE
+// ═══════════════════════════════════════════════════════════
+async function loadEquipment() {
+  try {
+    // 캐시 먼저 표시
+    const cached = localStorage.getItem('fn_equip_cache');
+    if (cached) equipmentList = JSON.parse(cached);
+
+    // 서버에서 최신 데이터
+    const data = await gasGet({ action: 'getEquipment' });
+    if (data.success && data.equipment && data.equipment.length) {
+      equipmentList = data.equipment;
+      localStorage.setItem('fn_equip_cache', JSON.stringify(equipmentList));
+    }
+  } catch(e) {
+    const cached = localStorage.getItem('fn_equip_cache');
+    if (cached) equipmentList = JSON.parse(cached);
+  }
+}
+
+function onTagInput() {
+  const q = (document.getElementById('reg-tag').value || '').trim().toLowerCase();
+  if (!q || equipmentList.length === 0) { closeDropdown(); return; }
+
+  acMatches = equipmentList
+    .filter(e => e.tag.toLowerCase().includes(q))
+    .slice(0, 12);
+
+  if (!acMatches.length) { closeDropdown(); return; }
+
+  acIndex = -1;
+  renderDropdown(q);
+  positionDropdown();
+}
+
+function renderDropdown(q) {
+  const drop = document.getElementById('tag-drop');
+  const esc  = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  drop.innerHTML = acMatches.map((e, i) => {
+    const hi = e.tag.replace(new RegExp(`(${esc})`, 'gi'), '<em>$1</em>');
+    const meta = [e.fmodu, e.location].filter(Boolean).join(' · ');
+    return `<div class="ac-item" data-i="${i}" onmousedown="selectEquip(${i})">
+      <div class="ac-tag">${hi}</div>
+      ${meta ? `<div class="ac-meta"><span class="ac-loc">${meta}</span></div>` : ''}
+    </div>`;
+  }).join('');
+  drop.style.display = 'block';
+}
+
+// fixed 위치 계산 — input 요소 기준
+function positionDropdown() {
+  const input = document.getElementById('reg-tag');
+  const drop  = document.getElementById('tag-drop');
+  const rect  = input.getBoundingClientRect();
+  drop.style.left  = rect.left   + 'px';
+  drop.style.top   = (rect.bottom + 4) + 'px';
+  drop.style.width = rect.width  + 'px';
+}
+
+function closeDropdown() {
+  const drop = document.getElementById('tag-drop');
+  drop.style.display = 'none';
+  acMatches = [];
+  acIndex   = -1;
+}
+
+function selectEquip(i) {
+  const eq = acMatches[i];
+  if (!eq) return;
+  document.getElementById('reg-tag').value      = eq.tag;
+  document.getElementById('reg-location').value = eq.location || '';
+  closeDropdown();
+  // Location readonly 해제 후 Drawing으로 포커스
+  document.getElementById('reg-drawing').focus();
+}
+
+function onTagKeydown(e) {
+  const drop  = document.getElementById('tag-drop');
+  if (drop.style.display === 'none') return;
+  const items = drop.querySelectorAll('.ac-item');
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acIndex = Math.min(acIndex + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('active', i === acIndex));
+    items[acIndex]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acIndex = Math.max(acIndex - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('active', i === acIndex));
+    items[acIndex]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && acIndex >= 0) {
+    e.preventDefault();
+    selectEquip(acIndex);
+  } else if (e.key === 'Escape') {
+    closeDropdown();
+  }
+}
+
+// 외부 클릭 시 드롭다운 닫기
+document.addEventListener('click', e => {
+  if (!e.target.closest('#reg-tag') && !e.target.closest('#tag-drop'))
+    closeDropdown();
+});
+
+// 스크롤 / 리사이즈 시 위치 재계산
+window.addEventListener('scroll', () => {
+  if (document.getElementById('tag-drop').style.display !== 'none') positionDropdown();
+}, true);
+window.addEventListener('resize', () => {
+  if (document.getElementById('tag-drop').style.display !== 'none') positionDropdown();
+});
 
 // ═══════════════════════════════════════════════════════════
 //  PHOTO HANDLING
@@ -525,14 +556,13 @@ function compressImage(file, maxDim, quality) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  PHOTO URL 보정 — uc?export=view → thumbnail (구버전 호환)
+//  PHOTO URL 보정 (구형 uc?export=view → thumbnail)
 // ═══════════════════════════════════════════════════════════
 function fixPhotoUrl(url) {
   if (!url) return url;
   const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (m && url.includes('uc?export=view')) {
+  if (m && url.includes('uc?export=view'))
     return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1200`;
-  }
   return url;
 }
 
@@ -576,33 +606,30 @@ async function submitRecord() {
 
   const dateStr    = new Date().toISOString().slice(0,10).replace(/-/g,'');
   const totalSteps = photos.length + 1;
-  let   step       = 0;
+  let step = 0;
   const setProgress = msg => {
     bar.style.width = Math.round(++step / totalSteps * 100) + '%';
     lbl.textContent = msg;
   };
 
   try {
-    // 사진 순차 업로드
     const photoUrls = [];
     for (let i = 0; i < photos.length; i++) {
       setProgress(`📤 사진 업로드 중... (${i+1}/${photos.length})`);
       const r = await gasPost({
-        action:   'uploadPhoto',
-        base64:   photos[i].compressed,
-        mimeType: 'image/jpeg',
-        filename: `${dateStr}_${tag}_${String(i+1).padStart(2,'0')}`
+        action:'uploadPhoto', base64:photos[i].compressed,
+        mimeType:'image/jpeg',
+        filename:`${dateStr}_${tag}_${String(i+1).padStart(2,'0')}`
       });
       if (!r.success) throw new Error(r.error || 'Photo upload failed');
       photoUrls.push(r.url);
     }
 
-    // 레코드 저장
     setProgress('💾 데이터 저장 중...');
     const r = await gasPost({
-      action: 'saveRecord',
-      equipmentTag: tag, name, location, drawingNo: drawing,
-      type, commentKo: ko, commentEn: en, photoUrls
+      action:'saveRecord',
+      equipmentTag:tag, name, location, drawingNo:drawing,
+      type, commentKo:ko, commentEn:en, photoUrls
     });
     if (!r.success) throw new Error(r.error || 'Save failed');
 
@@ -615,13 +642,12 @@ async function submitRecord() {
       btn.disabled    = false;
       bar.style.width = '0%';
       lbl.textContent = '⬆ SUBMIT FIELD NOTE';
-      // 캐시 무효화 → 백그라운드 동기화
       localStorage.removeItem('fn_cache_meta');
       localStorage.removeItem('fn_cache_records');
       refreshData(true);
     }, 1500);
 
-  } catch (err) {
+  } catch(err) {
     toast('오류: ' + err.message, 'error');
     btn.disabled    = false;
     bar.style.width = '0%';
@@ -639,20 +665,17 @@ function resetForm() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  DATA SYNC — 변경 감지 시만 서버 재요청
+//  DATA SYNC
 // ═══════════════════════════════════════════════════════════
 async function refreshData(force = false) {
   if (isFetching) return;
   isFetching = true;
   setSyncStatus('', '동기화 중...');
   try {
-    const meta = await gasGet({ action: 'metadata' });
+    const meta   = await gasGet({ action: 'metadata' });
     if (!meta.success) throw new Error(meta.error);
-
     const stored = JSON.parse(localStorage.getItem('fn_cache_meta') || 'null');
-    const isStale = !stored ||
-                    stored.rowCount !== meta.rowCount ||
-                    stored.modified !== meta.modified;
+    const isStale = !stored || stored.rowCount !== meta.rowCount || stored.modified !== meta.modified;
 
     if (!force && !isStale) {
       cachedRecords = JSON.parse(localStorage.getItem('fn_cache_records') || '[]');
@@ -665,7 +688,7 @@ async function refreshData(force = false) {
       localStorage.setItem('fn_cache_meta',    JSON.stringify(meta));
       setSyncStatus('live', `LIVE · ${cachedRecords.length}건`);
     }
-  } catch (err) {
+  } catch(err) {
     const cached = JSON.parse(localStorage.getItem('fn_cache_records') || '[]');
     cachedRecords = cached;
     setSyncStatus('cached', `OFFLINE · ${cached.length}건`);
@@ -681,22 +704,22 @@ async function refreshData(force = false) {
 async function doSearch() {
   if (!cachedRecords.length) await refreshData();
   const f = {
-    tag:       document.getElementById('s-tag').value.trim(),
-    location:  document.getElementById('s-location').value.trim(),
-    drawingNo: document.getElementById('s-drawing').value.trim(),
-    type:      document.getElementById('s-type').value,
-    keyword:   document.getElementById('s-keyword').value.trim(),
-    dateFrom:  document.getElementById('s-date-from').value,
-    dateTo:    document.getElementById('s-date-to').value
+    tag:      document.getElementById('s-tag').value.trim(),
+    location: document.getElementById('s-location').value.trim(),
+    drawingNo:document.getElementById('s-drawing').value.trim(),
+    type:     document.getElementById('s-type').value,
+    keyword:  document.getElementById('s-keyword').value.trim(),
+    dateFrom: document.getElementById('s-date-from').value,
+    dateTo:   document.getElementById('s-date-to').value
   };
   const results = cachedRecords.filter(r => {
-    if (f.tag       && !n(r['Equipment Tag']).includes(n(f.tag)))       return false;
-    if (f.location  && !n(r['Location'])     .includes(n(f.location)))  return false;
-    if (f.drawingNo && !n(r['Drawing No.'])  .includes(n(f.drawingNo))) return false;
-    if (f.type      && r['Type'] !== f.type)                            return false;
-    if (f.keyword && !n(r['Comment(Korean)'] + r['Comment(English)']).includes(n(f.keyword))) return false;
-    if (f.dateFrom && r['Date&time'] < f.dateFrom)                      return false;
-    if (f.dateTo   && r['Date&time'] > f.dateTo + ' 23:59:59')          return false;
+    if (f.tag      && !n(r['Equipment Tag']).includes(n(f.tag)))      return false;
+    if (f.location && !n(r['Location'])     .includes(n(f.location))) return false;
+    if (f.drawingNo&& !n(r['Drawing No.'])  .includes(n(f.drawingNo)))return false;
+    if (f.type     && r['Type'] !== f.type)                           return false;
+    if (f.keyword && !n(r['Comment(Korean)']+r['Comment(English)']).includes(n(f.keyword))) return false;
+    if (f.dateFrom && r['Date&time'] < f.dateFrom)                    return false;
+    if (f.dateTo   && r['Date&time'] > f.dateTo + ' 23:59:59')        return false;
     return true;
   });
   document.getElementById('result-stats').style.display = 'flex';
@@ -728,9 +751,9 @@ function renderResults(records) {
 }
 
 function buildCard(r, i) {
-  const pList = Array.from({length:20},(_,j)=>r[`Photo${j+1}`]).filter(Boolean).map(fixPhotoUrl);
-  const thumbs   = pList.slice(0,4).map(u=>`<img class="record-photo" src="${u}" onclick="openLightbox('${u}',event)">`).join('');
-  const allPh    = pList.map(u=>`<img class="detail-photo" src="${u}" onclick="openLightbox('${u}',event)">`).join('');
+  const pList  = Array.from({length:20},(_,j)=>r[`Photo${j+1}`]).filter(Boolean).map(fixPhotoUrl);
+  const thumbs = pList.slice(0,4).map(u=>`<img class="record-photo" src="${u}" onclick="openLightbox('${u}',event)">`).join('');
+  const allPh  = pList.map(u=>`<img class="detail-photo" src="${u}" onclick="openLightbox('${u}',event)">`).join('');
   const ko = r['Comment(Korean)']  || '';
   const en = r['Comment(English)'] || '';
   const fields = [
@@ -776,25 +799,26 @@ function toggleCard(i){ document.getElementById('card-'+i)?.classList.toggle('ex
 // ═══════════════════════════════════════════════════════════
 function openLightbox(url,e){ e?.stopPropagation(); document.getElementById('lightbox-img').src=url; document.getElementById('lightbox').classList.add('show'); }
 function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
-
 let _tt;
 function toast(msg,type=''){
   const el=document.getElementById('toast');
   el.textContent=msg; el.className='show '+type;
   clearTimeout(_tt); _tt=setTimeout(()=>el.className='',3200);
 }
-
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
 // ═══════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════
-(function(){
+(async function init(){
   cachedRecords = JSON.parse(localStorage.getItem('fn_cache_records')||'[]');
   if(cachedRecords.length) setSyncStatus('cached',`CACHED · ${cachedRecords.length}건`);
   renderPhotoGrid();
-  refreshData(false);
-  loadEquipment();   // Equipment 목록 로드
+  // 병렬 로드
+  await Promise.all([
+    refreshData(false),
+    loadEquipment()
+  ]);
 })();
 </script>
 </body>
