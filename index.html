@@ -532,13 +532,62 @@ window.addEventListener('resize', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+//  INDEXED DB — 사진 임시 저장 (용량 제한 없음)
+// ═══════════════════════════════════════════════════════════
+let _db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (_db) { resolve(_db); return; }
+    const req = indexedDB.open('FieldNoteDraft', 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore('photos', { keyPath: 'idx' });
+      e.target.result.createObjectStore('meta',   { keyPath: 'key' });
+    };
+    req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function dbPut(store, val) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).put(val);
+    tx.oncomplete = res;
+    tx.onerror    = () => rej(tx.error);
+  });
+}
+
+async function dbGetAll(store) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const req = db.transaction(store, 'readonly').objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+async function dbClear(store) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).clear();
+    tx.oncomplete = res;
+    tx.onerror    = () => rej(tx.error);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 //  PHOTO HANDLING  +  DRAFT 저장/복원
-//  ★ localStorage 사용 — 안드로이드 카메라 재로드 후에도 유지
 // ═══════════════════════════════════════════════════════════
 
-function saveFormState() {
+// 텍스트 필드 → localStorage / 사진 → IndexedDB
+async function saveFormState() {
   try {
-    const state = {
+    // 텍스트만 localStorage (가볍고 빠름)
+    const meta = {
+      key: 'draft',
       ts:       Date.now(),
       tag:      document.getElementById('reg-tag').value,
       name:     document.getElementById('reg-name').value,
@@ -547,42 +596,32 @@ function saveFormState() {
       type:     document.getElementById('reg-type').value,
       ko:       document.getElementById('reg-comment-ko').value,
       en:       document.getElementById('reg-comment-en').value,
-      photos:   photos.map(p => ({ compressed: p.compressed }))
+      photoCount: photos.length
     };
-    localStorage.setItem('fn_form_draft', JSON.stringify(state));
+    localStorage.setItem('fn_draft_meta', JSON.stringify(meta));
+
+    // 사진 → IndexedDB (용량 제한 없음)
+    await dbClear('photos');
+    for (let i = 0; i < photos.length; i++) {
+      await dbPut('photos', { idx: i, compressed: photos[i].compressed });
+    }
   } catch(e) {
-    // localStorage 용량 초과 시 사진 제외하고 재시도
-    try {
-      const state = {
-        ts:       Date.now(),
-        tag:      document.getElementById('reg-tag').value,
-        name:     document.getElementById('reg-name').value,
-        location: document.getElementById('reg-location').value,
-        drawing:  document.getElementById('reg-drawing').value,
-        type:     document.getElementById('reg-type').value,
-        ko:       document.getElementById('reg-comment-ko').value,
-        en:       document.getElementById('reg-comment-en').value,
-        photos:   []
-      };
-      localStorage.setItem('fn_form_draft', JSON.stringify(state));
-    } catch(_) {}
+    console.warn('saveFormState error:', e);
   }
 }
 
 async function restoreFormState() {
   try {
-    const raw = localStorage.getItem('fn_form_draft');
+    const raw = localStorage.getItem('fn_draft_meta');
     if (!raw) return false;
 
     const s = JSON.parse(raw);
-
-    // 1시간 이상 된 draft는 무시
-    if (Date.now() - (s.ts || 0) > 3600000) {
-      localStorage.removeItem('fn_form_draft');
-      return false;
+    // 2시간 이상 된 draft 무시
+    if (Date.now() - (s.ts || 0) > 7200000) {
+      clearFormDraft(); return false;
     }
 
-    // 폼 필드 복원
+    // 텍스트 복원
     document.getElementById('reg-tag').value         = s.tag      || '';
     document.getElementById('reg-name').value        = s.name     || '';
     document.getElementById('reg-location').value    = s.location || '';
@@ -591,14 +630,16 @@ async function restoreFormState() {
     document.getElementById('reg-comment-ko').value  = s.ko       || '';
     document.getElementById('reg-comment-en').value  = s.en       || '';
 
-    // 사진 복원
-    if (s.photos && s.photos.length) {
+    // 사진 복원 (IndexedDB)
+    if (s.photoCount > 0) {
+      const rows = await dbGetAll('photos');
+      rows.sort((a,b) => a.idx - b.idx);
       photos = [];
-      for (const p of s.photos) {
+      for (const row of rows) {
         try {
-          const blob    = b64toBlob(p.compressed, 'image/jpeg');
+          const blob    = b64toBlob(row.compressed, 'image/jpeg');
           const dataUrl = URL.createObjectURL(blob);
-          photos.push({ dataUrl, compressed: p.compressed });
+          photos.push({ dataUrl, compressed: row.compressed });
         } catch(_) {}
       }
       if (photos.length) {
@@ -607,17 +648,16 @@ async function restoreFormState() {
       }
     }
 
-    // 폼에 내용이 있을 때만 true 반환
-    const hasContent = s.tag || s.name || s.ko || s.en || (s.photos && s.photos.length);
+    const hasContent = s.tag || s.name || s.ko || s.en || s.photoCount > 0;
     return !!hasContent;
-
   } catch(e) {
     return false;
   }
 }
 
-function clearFormDraft() {
-  localStorage.removeItem('fn_form_draft');
+async function clearFormDraft() {
+  localStorage.removeItem('fn_draft_meta');
+  try { await dbClear('photos'); } catch(_) {}
 }
 
 function b64toBlob(b64, mimeType) {
@@ -629,7 +669,7 @@ function b64toBlob(b64, mimeType) {
 
 function triggerFileInput() {
   if (photos.length >= 20) { toast('최대 20장까지 등록 가능합니다', 'warning'); return; }
-  saveFormState();  // 카메라 열기 직전 저장
+  saveFormState();
   document.getElementById('fileInput').click();
 }
 
@@ -645,7 +685,7 @@ async function handlePhotos(e) {
     photos.push({ dataUrl, compressed });
   }
   renderPhotoGrid();
-  saveFormState();  // 사진 추가 후 즉시 저장
+  saveFormState();
   e.target.value = '';
 }
 function removePhoto(idx) {
@@ -789,14 +829,14 @@ async function submitRecord() {
   }
 }
 
-function resetForm() {
+async function resetForm() {
   ['reg-tag','reg-name','reg-location','reg-drawing','reg-comment-ko','reg-comment-en']
     .forEach(id => document.getElementById(id).value = '');
   document.getElementById('reg-type').value = '';
   photos.forEach(p => URL.revokeObjectURL(p.dataUrl));
   photos = [];
   renderPhotoGrid();
-  clearFormDraft();  // ★ 제출 후 draft 삭제
+  await clearFormDraft();
 }
 
 // ═══════════════════════════════════════════════════════════
