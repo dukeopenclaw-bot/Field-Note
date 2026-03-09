@@ -532,57 +532,92 @@ window.addEventListener('resize', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
-//  PHOTO HANDLING
+//  PHOTO HANDLING  +  DRAFT 저장/복원
+//  ★ localStorage 사용 — 안드로이드 카메라 재로드 후에도 유지
 // ═══════════════════════════════════════════════════════════
 
-// 폼 상태를 sessionStorage에 저장 (카메라 앱 복귀 시 복원용)
 function saveFormState() {
-  const state = {
-    tag:      document.getElementById('reg-tag').value,
-    name:     document.getElementById('reg-name').value,
-    location: document.getElementById('reg-location').value,
-    drawing:  document.getElementById('reg-drawing').value,
-    type:     document.getElementById('reg-type').value,
-    ko:       document.getElementById('reg-comment-ko').value,
-    en:       document.getElementById('reg-comment-en').value,
-    // 사진은 base64 compressed만 저장 (dataUrl은 blob이라 복원 불가)
-    photos:   photos.map(p => ({ compressed: p.compressed }))
-  };
-  sessionStorage.setItem('fn_form_draft', JSON.stringify(state));
+  try {
+    const state = {
+      ts:       Date.now(),
+      tag:      document.getElementById('reg-tag').value,
+      name:     document.getElementById('reg-name').value,
+      location: document.getElementById('reg-location').value,
+      drawing:  document.getElementById('reg-drawing').value,
+      type:     document.getElementById('reg-type').value,
+      ko:       document.getElementById('reg-comment-ko').value,
+      en:       document.getElementById('reg-comment-en').value,
+      photos:   photos.map(p => ({ compressed: p.compressed }))
+    };
+    localStorage.setItem('fn_form_draft', JSON.stringify(state));
+  } catch(e) {
+    // localStorage 용량 초과 시 사진 제외하고 재시도
+    try {
+      const state = {
+        ts:       Date.now(),
+        tag:      document.getElementById('reg-tag').value,
+        name:     document.getElementById('reg-name').value,
+        location: document.getElementById('reg-location').value,
+        drawing:  document.getElementById('reg-drawing').value,
+        type:     document.getElementById('reg-type').value,
+        ko:       document.getElementById('reg-comment-ko').value,
+        en:       document.getElementById('reg-comment-en').value,
+        photos:   []
+      };
+      localStorage.setItem('fn_form_draft', JSON.stringify(state));
+    } catch(_) {}
+  }
 }
 
 async function restoreFormState() {
-  const raw = sessionStorage.getItem('fn_form_draft');
-  if (!raw) return false;
   try {
-    const s = JSON.parse(raw);
-    document.getElementById('reg-tag').value      = s.tag      || '';
-    document.getElementById('reg-name').value     = s.name     || '';
-    document.getElementById('reg-location').value = s.location || '';
-    document.getElementById('reg-drawing').value  = s.drawing  || '';
-    document.getElementById('reg-type').value     = s.type     || '';
-    document.getElementById('reg-comment-ko').value = s.ko     || '';
-    document.getElementById('reg-comment-en').value = s.en     || '';
+    const raw = localStorage.getItem('fn_form_draft');
+    if (!raw) return false;
 
-    // 사진 복원 — base64 → blob URL
+    const s = JSON.parse(raw);
+
+    // 1시간 이상 된 draft는 무시
+    if (Date.now() - (s.ts || 0) > 3600000) {
+      localStorage.removeItem('fn_form_draft');
+      return false;
+    }
+
+    // 폼 필드 복원
+    document.getElementById('reg-tag').value         = s.tag      || '';
+    document.getElementById('reg-name').value        = s.name     || '';
+    document.getElementById('reg-location').value    = s.location || '';
+    document.getElementById('reg-drawing').value     = s.drawing  || '';
+    document.getElementById('reg-type').value        = s.type     || '';
+    document.getElementById('reg-comment-ko').value  = s.ko       || '';
+    document.getElementById('reg-comment-en').value  = s.en       || '';
+
+    // 사진 복원
     if (s.photos && s.photos.length) {
       photos = [];
       for (const p of s.photos) {
-        const blob    = b64toBlob(p.compressed, 'image/jpeg');
-        const dataUrl = URL.createObjectURL(blob);
-        photos.push({ dataUrl, compressed: p.compressed });
+        try {
+          const blob    = b64toBlob(p.compressed, 'image/jpeg');
+          const dataUrl = URL.createObjectURL(blob);
+          photos.push({ dataUrl, compressed: p.compressed });
+        } catch(_) {}
       }
-      renderPhotoGrid();
-      toast(`📷 사진 ${photos.length}장 복원됨`, 'success');
+      if (photos.length) {
+        renderPhotoGrid();
+        toast(`📷 사진 ${photos.length}장 복원됨`, 'success');
+      }
     }
-    return true;
+
+    // 폼에 내용이 있을 때만 true 반환
+    const hasContent = s.tag || s.name || s.ko || s.en || (s.photos && s.photos.length);
+    return !!hasContent;
+
   } catch(e) {
     return false;
   }
 }
 
 function clearFormDraft() {
-  sessionStorage.removeItem('fn_form_draft');
+  localStorage.removeItem('fn_form_draft');
 }
 
 function b64toBlob(b64, mimeType) {
@@ -594,7 +629,7 @@ function b64toBlob(b64, mimeType) {
 
 function triggerFileInput() {
   if (photos.length >= 20) { toast('최대 20장까지 등록 가능합니다', 'warning'); return; }
-  saveFormState();   // ★ 카메라 열기 전에 현재 상태 저장
+  saveFormState();  // 카메라 열기 직전 저장
   document.getElementById('fileInput').click();
 }
 
@@ -610,7 +645,7 @@ async function handlePhotos(e) {
     photos.push({ dataUrl, compressed });
   }
   renderPhotoGrid();
-  saveFormState();   // ★ 사진 추가 후 즉시 상태 저장
+  saveFormState();  // 사진 추가 후 즉시 저장
   e.target.value = '';
 }
 function removePhoto(idx) {
@@ -906,6 +941,20 @@ function toast(msg,type=''){
   clearTimeout(_tt); _tt=setTimeout(()=>el.className='',3200);
 }
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// 카메라/갤러리에서 복귀 시 draft 복원 (visibilitychange)
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    const raw = localStorage.getItem('fn_form_draft');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    // 폼이 비어있고 draft가 있으면 복원
+    const tagNow = document.getElementById('reg-tag').value;
+    if (!tagNow && s.tag) {
+      await restoreFormState();
+    }
+  }
+});
 
 // ═══════════════════════════════════════════════════════════
 //  INIT
