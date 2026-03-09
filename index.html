@@ -216,7 +216,7 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
 
     <!-- ══ REGISTER ══ -->
     <div class="screen active" id="screen-register">
-      <div class="section-head">📌 NEW FIELD NOTE</div>
+      <div class="section-head">📌 NEW FIELD NOTE &nbsp;<button onclick="debugEquipment()" style="font-size:9px;background:var(--surface3);color:var(--text-muted);border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-family:var(--font-mono);letter-spacing:0;vertical-align:middle">🔧 EQ진단</button></div>
       <div class="form-card">
 
         <!-- EQ TAG — 자동완성 분리 -->
@@ -383,19 +383,40 @@ function setSyncStatus(state, label) {
 // ═══════════════════════════════════════════════════════════
 async function loadEquipment() {
   try {
-    // 캐시 먼저 표시
     const cached = localStorage.getItem('fn_equip_cache');
-    if (cached) equipmentList = JSON.parse(cached);
-
-    // 서버에서 최신 데이터
+    if (cached) {
+      equipmentList = JSON.parse(cached);
+    }
     const data = await gasGet({ action: 'getEquipment' });
     if (data.success && data.equipment && data.equipment.length) {
       equipmentList = data.equipment;
       localStorage.setItem('fn_equip_cache', JSON.stringify(equipmentList));
+    } else if (!data.success) {
+      toast('EQ 로드 실패: ' + (data.error||'unknown'), 'error');
     }
   } catch(e) {
     const cached = localStorage.getItem('fn_equip_cache');
     if (cached) equipmentList = JSON.parse(cached);
+  }
+}
+
+// 진단 함수 — 앱 내 버튼으로 호출
+async function debugEquipment() {
+  toast('EQ 진단 중...', '');
+  try {
+    const data = await gasGet({ action: 'getEquipment' });
+    if (!data.success) {
+      toast('❌ GAS오류: ' + (data.error||'unknown'), 'error'); return;
+    }
+    const list = data.equipment || [];
+    if (!list.length) {
+      toast('❌ Equipment 시트 데이터 없음 (헤더 확인)', 'error'); return;
+    }
+    equipmentList = list;
+    localStorage.setItem('fn_equip_cache', JSON.stringify(list));
+    toast(`✅ EQ ${list.length}건 로드 완료 — 첫번째: ${list[0].tag}`, 'success');
+  } catch(e) {
+    toast('❌ 연결오류: ' + e.message, 'error');
   }
 }
 
