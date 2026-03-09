@@ -320,7 +320,7 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
 // ═══════════════════════════════════════════════════════════
 //  ★ GAS 배포 후 아래 URL 한 줄만 교체하세요 ★
 // ═══════════════════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxGwJfYi4elXSgguLsTifyjdcMdH5dx-9CkJpUNkhboLdtCLB1JNGaxe5raydmYCZqleQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJaSYBRwEx24s7B10iH6oFvmz_kkrrfGoPYjc4ibgSy9O_A1ugnmZviAUtA5-RSaSDog/exec';
 
 // ═══════════════════════════════════════════════════════════
 //  STATE
@@ -409,6 +409,18 @@ function compressImage(file, maxDim, quality) {
     };
     img.src = URL.createObjectURL(file);
   });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PHOTO URL 보정 — uc?export=view → thumbnail (구버전 호환)
+// ═══════════════════════════════════════════════════════════
+function fixPhotoUrl(url) {
+  if (!url) return url;
+  const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m && url.includes('uc?export=view')) {
+    return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1200`;
+  }
+  return url;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -603,7 +615,7 @@ function renderResults(records) {
 }
 
 function buildCard(r, i) {
-  const pList = Array.from({length:20},(_,j)=>r[`Photo${j+1}`]).filter(Boolean);
+  const pList = Array.from({length:20},(_,j)=>r[`Photo${j+1}`]).filter(Boolean).map(fixPhotoUrl);
   const thumbs   = pList.slice(0,4).map(u=>`<img class="record-photo" src="${u}" onclick="openLightbox('${u}',event)">`).join('');
   const allPh    = pList.map(u=>`<img class="detail-photo" src="${u}" onclick="openLightbox('${u}',event)">`).join('');
   const ko = r['Comment(Korean)']  || '';
