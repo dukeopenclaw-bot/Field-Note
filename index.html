@@ -170,6 +170,38 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
 .empty-icon{font-size:40px;margin-bottom:12px}
 .empty-text{font-family:var(--font-head);font-size:15px;font-weight:700;letter-spacing:2px}
 
+/* ── AUTOCOMPLETE ── */
+.autocomplete-wrap{position:relative;flex:1;display:flex}
+.autocomplete-drop{
+  position:absolute;top:100%;left:0;right:0;
+  background:var(--surface2);
+  border:1px solid var(--amber-dim);
+  border-radius:8px;
+  z-index:1000;
+  max-height:220px;overflow-y:auto;
+  box-shadow:0 8px 30px rgba(0,0,0,.6);
+  margin-top:4px;
+}
+.autocomplete-item{
+  padding:11px 14px;
+  cursor:pointer;
+  border-bottom:1px solid var(--border);
+  transition:background .15s;
+}
+.autocomplete-item:last-child{border-bottom:none}
+.autocomplete-item:hover,.autocomplete-item.active{background:var(--surface3)}
+.autocomplete-tag{
+  font-family:var(--font-head);
+  font-size:15px;font-weight:700;
+  color:var(--text);letter-spacing:1px;
+}
+.autocomplete-tag em{color:var(--amber);font-style:normal}
+.autocomplete-meta{
+  font-family:var(--font-mono);
+  font-size:10px;color:var(--text-muted);
+  margin-top:2px;
+}
+
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -201,9 +233,15 @@ select.field-input{-webkit-appearance:none;appearance:none;cursor:pointer}
     <div class="screen active" id="screen-register">
       <div class="section-head">📌 NEW FIELD NOTE</div>
       <div class="form-card">
-        <div class="field-row">
+        <div class="field-row" style="overflow:visible;position:relative">
           <div class="field-label">EQ. TAG</div>
-          <input class="field-input" id="reg-tag" type="text" placeholder="P-101A" autocomplete="off" autocapitalize="characters"/>
+          <div class="autocomplete-wrap">
+            <input class="field-input" id="reg-tag" type="text"
+              placeholder="P-101A (입력하면 목록 표시)"
+              autocomplete="off" autocapitalize="characters"
+              oninput="onTagInput()" onkeydown="onTagKeydown(event)" onfocus="onTagInput()"/>
+            <div class="autocomplete-drop" id="tag-drop" style="display:none"></div>
+          </div>
         </div>
         <div class="field-row">
           <div class="field-label">NAME</div>
@@ -327,7 +365,82 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJaSYBRwEx24s7B10iH6oF
 // ═══════════════════════════════════════════════════════════
 let photos        = [];
 let cachedRecords = [];
+let equipmentList = [];  // [{tag, fmodu, location}]
+let acIndex       = -1;
 let isFetching    = false;
+
+// ═══════════════════════════════════════════════════════════
+//  EQUIPMENT AUTOCOMPLETE
+// ═══════════════════════════════════════════════════════════
+async function loadEquipment() {
+  try {
+    const cached = localStorage.getItem('fn_equip_cache');
+    if (cached) equipmentList = JSON.parse(cached);
+    const data = await gasGet({ action: 'getEquipment' });
+    if (data.success && data.equipment.length) {
+      equipmentList = data.equipment;
+      localStorage.setItem('fn_equip_cache', JSON.stringify(equipmentList));
+    }
+  } catch(_) {
+    const cached = localStorage.getItem('fn_equip_cache');
+    if (cached) equipmentList = JSON.parse(cached);
+  }
+}
+
+function onTagInput() {
+  const q    = document.getElementById('reg-tag').value.trim().toLowerCase();
+  const drop = document.getElementById('tag-drop');
+  acIndex    = -1;
+  if (!q) { drop.style.display = 'none'; return; }
+
+  const matches = equipmentList.filter(e => e.tag.toLowerCase().includes(q)).slice(0, 12);
+  if (!matches.length) { drop.style.display = 'none'; return; }
+
+  drop.innerHTML = matches.map((e, i) => {
+    const hi = e.tag.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<em>$1</em>');
+    return `<div class="autocomplete-item" data-idx="${i}" onmousedown="selectEquip(${i})">
+      <div class="autocomplete-tag">${hi}</div>
+      <div class="autocomplete-meta">${e.fmodu ? e.fmodu + ' &middot; ' : ''}${e.location || '—'}</div>
+    </div>`;
+  }).join('');
+
+  drop._matches = matches;
+  drop.style.display = 'block';
+}
+
+function onTagKeydown(e) {
+  const drop  = document.getElementById('tag-drop');
+  if (drop.style.display === 'none') return;
+  const items = drop.querySelectorAll('.autocomplete-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    acIndex = Math.min(acIndex + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('active', i === acIndex));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    acIndex = Math.max(acIndex - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('active', i === acIndex));
+  } else if (e.key === 'Enter' && acIndex >= 0) {
+    e.preventDefault(); selectEquip(acIndex);
+  } else if (e.key === 'Escape') {
+    drop.style.display = 'none';
+  }
+}
+
+function selectEquip(idx) {
+  const drop = document.getElementById('tag-drop');
+  const eq   = drop._matches && drop._matches[idx];
+  if (!eq) return;
+  document.getElementById('reg-tag').value      = eq.tag;
+  document.getElementById('reg-location').value = eq.location || '';
+  drop.style.display = 'none';
+  document.getElementById('reg-drawing').focus();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#reg-tag') && !e.target.closest('#tag-drop'))
+    document.getElementById('tag-drop').style.display = 'none';
+});
 
 // ═══════════════════════════════════════════════════════════
 //  TABS
@@ -681,6 +794,7 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').cat
   if(cachedRecords.length) setSyncStatus('cached',`CACHED · ${cachedRecords.length}건`);
   renderPhotoGrid();
   refreshData(false);
+  loadEquipment();   // Equipment 목록 로드
 })();
 </script>
 </body>
