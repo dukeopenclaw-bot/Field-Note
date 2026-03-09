@@ -441,7 +441,9 @@ function renderDropdown(q) {
   drop.innerHTML = acMatches.map((e, i) => {
     const hi = e.tag.replace(new RegExp(`(${esc})`, 'gi'), '<em>$1</em>');
     const meta = [e.fmodu, e.location].filter(Boolean).join(' · ');
-    return `<div class="ac-item" data-i="${i}" onmousedown="selectEquip(${i})">
+    return `<div class="ac-item" data-i="${i}"
+      onmousedown="selectEquip(${i})"
+      ontouchstart="selectEquip(${i})">
       <div class="ac-tag">${hi}</div>
       ${meta ? `<div class="ac-meta"><span class="ac-loc">${meta}</span></div>` : ''}
     </div>`;
@@ -449,14 +451,25 @@ function renderDropdown(q) {
   drop.style.display = 'block';
 }
 
-// fixed 위치 계산 — input 요소 기준
+// fixed 위치 계산 — 키보드 올라와도 정확하게
 function positionDropdown() {
   const input = document.getElementById('reg-tag');
   const drop  = document.getElementById('tag-drop');
   const rect  = input.getBoundingClientRect();
-  drop.style.left  = rect.left   + 'px';
-  drop.style.top   = (rect.bottom + 4) + 'px';
-  drop.style.width = rect.width  + 'px';
+
+  // 화면 하단에 공간이 부족하면 위쪽에 표시
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const dropH      = Math.min(240, acMatches.length * 56);
+
+  if (spaceBelow < dropH && rect.top > dropH) {
+    // 위쪽 표시
+    drop.style.top    = (rect.top - dropH - 4) + 'px';
+  } else {
+    // 아래쪽 표시
+    drop.style.top    = (rect.bottom + 4) + 'px';
+  }
+  drop.style.left  = rect.left  + 'px';
+  drop.style.width = rect.width + 'px';
 }
 
 function closeDropdown() {
@@ -466,13 +479,17 @@ function closeDropdown() {
   acIndex   = -1;
 }
 
+let _selecting = false;
 function selectEquip(i) {
+  if (_selecting) return;
+  _selecting = true;
+  setTimeout(() => _selecting = false, 300);
+
   const eq = acMatches[i];
   if (!eq) return;
   document.getElementById('reg-tag').value      = eq.tag;
   document.getElementById('reg-location').value = eq.location || '';
   closeDropdown();
-  // Location readonly 해제 후 Drawing으로 포커스
   document.getElementById('reg-drawing').focus();
 }
 
@@ -517,10 +534,70 @@ window.addEventListener('resize', () => {
 // ═══════════════════════════════════════════════════════════
 //  PHOTO HANDLING
 // ═══════════════════════════════════════════════════════════
+
+// 폼 상태를 sessionStorage에 저장 (카메라 앱 복귀 시 복원용)
+function saveFormState() {
+  const state = {
+    tag:      document.getElementById('reg-tag').value,
+    name:     document.getElementById('reg-name').value,
+    location: document.getElementById('reg-location').value,
+    drawing:  document.getElementById('reg-drawing').value,
+    type:     document.getElementById('reg-type').value,
+    ko:       document.getElementById('reg-comment-ko').value,
+    en:       document.getElementById('reg-comment-en').value,
+    // 사진은 base64 compressed만 저장 (dataUrl은 blob이라 복원 불가)
+    photos:   photos.map(p => ({ compressed: p.compressed }))
+  };
+  sessionStorage.setItem('fn_form_draft', JSON.stringify(state));
+}
+
+async function restoreFormState() {
+  const raw = sessionStorage.getItem('fn_form_draft');
+  if (!raw) return false;
+  try {
+    const s = JSON.parse(raw);
+    document.getElementById('reg-tag').value      = s.tag      || '';
+    document.getElementById('reg-name').value     = s.name     || '';
+    document.getElementById('reg-location').value = s.location || '';
+    document.getElementById('reg-drawing').value  = s.drawing  || '';
+    document.getElementById('reg-type').value     = s.type     || '';
+    document.getElementById('reg-comment-ko').value = s.ko     || '';
+    document.getElementById('reg-comment-en').value = s.en     || '';
+
+    // 사진 복원 — base64 → blob URL
+    if (s.photos && s.photos.length) {
+      photos = [];
+      for (const p of s.photos) {
+        const blob    = b64toBlob(p.compressed, 'image/jpeg');
+        const dataUrl = URL.createObjectURL(blob);
+        photos.push({ dataUrl, compressed: p.compressed });
+      }
+      renderPhotoGrid();
+      toast(`📷 사진 ${photos.length}장 복원됨`, 'success');
+    }
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function clearFormDraft() {
+  sessionStorage.removeItem('fn_form_draft');
+}
+
+function b64toBlob(b64, mimeType) {
+  const bytes = atob(b64);
+  const arr   = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mimeType });
+}
+
 function triggerFileInput() {
   if (photos.length >= 20) { toast('최대 20장까지 등록 가능합니다', 'warning'); return; }
+  saveFormState();   // ★ 카메라 열기 전에 현재 상태 저장
   document.getElementById('fileInput').click();
 }
+
 async function handlePhotos(e) {
   const files     = Array.from(e.target.files);
   const remaining = 20 - photos.length;
@@ -533,6 +610,7 @@ async function handlePhotos(e) {
     photos.push({ dataUrl, compressed });
   }
   renderPhotoGrid();
+  saveFormState();   // ★ 사진 추가 후 즉시 상태 저장
   e.target.value = '';
 }
 function removePhoto(idx) {
@@ -683,6 +761,7 @@ function resetForm() {
   photos.forEach(p => URL.revokeObjectURL(p.dataUrl));
   photos = [];
   renderPhotoGrid();
+  clearFormDraft();  // ★ 제출 후 draft 삭제
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -834,7 +913,21 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').cat
 (async function init(){
   cachedRecords = JSON.parse(localStorage.getItem('fn_cache_records')||'[]');
   if(cachedRecords.length) setSyncStatus('cached',`CACHED · ${cachedRecords.length}건`);
+
   renderPhotoGrid();
+
+  // ★ 카메라에서 복귀 시 폼 상태 복원
+  const restored = await restoreFormState();
+  if (restored) {
+    // draft가 있으면 등록 탭 유지 (이미 active)
+  }
+
+  // 폼 필드 변경 시 자동 저장
+  ['reg-tag','reg-name','reg-location','reg-drawing','reg-comment-ko','reg-comment-en'].forEach(id => {
+    document.getElementById(id).addEventListener('input', saveFormState);
+  });
+  document.getElementById('reg-type').addEventListener('change', saveFormState);
+
   // 병렬 로드
   await Promise.all([
     refreshData(false),
